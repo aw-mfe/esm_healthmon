@@ -54,14 +54,17 @@ Python 3.5+ is required.
 
 Download the files manually or:
 
+```
 git clone https://github.com/andywalden/esm_healthmon
-
+```
 Good practice to use a virtual environment:
 
+```
 cd esm_healthmon
 virtualenv -ppython3 env
 source env/bin/activate or env\Scripts\Activate.bat
 pip install -r requirements.txt
+```
 
 One of the requirements is msiempy. It needs to be configured to talk to the ESM. To input host and credentials run:
 python msiempy_setup.py 
@@ -79,3 +82,7 @@ There are two config files used. The first is for msiempy and can be found in yo
 
 The second config file is the heathmon.ini file in the local directory. For tuning, make sure that the alarm_window is appropriate for your environment. Also remove any non-critical query_<Receiver> lines to reduce the query activity. 
 
+----
+TODO
+----
+ - Detailed Reference
