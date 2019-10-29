@@ -42,12 +42,12 @@ Python 3.5+ is required.
 
 Download the files manually or:
 
-```
+```python
 git clone https://github.com/andywalden/esm_healthmon
 ```
 Good practice to use a virtual environment:
 
-```
+```python
 cd esm_healthmon
 virtualenv -ppython3 env
 source env/bin/activate or env\Scripts\Activate.bat
