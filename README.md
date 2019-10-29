@@ -41,12 +41,12 @@ Python 3.5+ is required.
 
 Download the files manually or:
 
-```python
+```awk
 git clone https://github.com/andywalden/esm_healthmon
 ```
 Best practice to use a virtual environment:
 
-```python
+```awk
 cd esm_healthmon
 virtualenv -ppython3 env
 source env/bin/activate or env\Scripts\Activate.bat
@@ -54,11 +54,14 @@ pip install -r requirements.txt
 ```
 
 One of the requirements is msiempy. It needs to be configured to talk to the ESM. To input host and credentials run:
+```awk
 python msiempy_setup.py 
+```
 
 After msiempy is configured ESM_Healthmon must be configured. To create an initial config file run:
+```awk
 python healthmon.py config
-
+```
 This creates the healthmon.ini file in the same directory. The generated config provides a template to customize to your use case. It includes options for the query windows and an entry for each Receiver device ID.
 
 
