@@ -1,30 +1,22 @@
-=============
-ESM_Healthmon
-=============
+#ESM_Healthmon
 
-------------
-Introduction
-------------
+
+##Introduction
+
 
 ESM_Healthmon monitors ESM alarm and device operations by checking timestamps against defined thresholds. 
 
 Background: The ESM has more robust health monitoring capabilities than ever, however, ESM_Healthmon came about after a unique situation where an ESM was unable to generate alerts due to the state it was in. This created the question "what could be implemented easily as a backup notification system when normal health notifications aren't occurring?". ESM_Healthmon addresses this by monitoring alarm and event timestamps.
 
-------
-Alarms
-------
+##Alarms
 
 Use Case: Your SOC is alarm driven. You've created a workflow that relies upon alarms firing and kicking off other actions. Alarms fire at a regular cadence and if that stopped it would indicate a problem. How can you quickly know if the alarms stop firing? 
 
-------
-Events
-------
+##Events
 
 Use Case: You have critical Receivers that you need to continously ensure are operating properly. One of them starts to become backlogged with events due to an EPS surge. The events continue to flow but the timestamps begin to slip further behind. How can you detect this fast enough to react in real time? 
 
----------
-Operation
----------
+##Operation
 
 As mentioned, the ESM has health monitoring capabilities which have become further enhanced in 11.3.1 and later versions. ESM_Healthmon functionality is redundant with what the ESM already provides and should only be implemented in a scenario where the ESM alarms have already been enabled as the primary method of monitoring ESM health. 
 
@@ -34,9 +26,7 @@ At each interval ESM_Healthmon will also query the ESM for the most recent event
 
 When ESM_Healthmon finds a timestamp outside of the threshold, it will output a message saying so. It is designed to be extended progmatically though, so from a python perspective, when the script runs, either a message is returned with a description of the problem or None is returned. In one implementation, if output is detected from the checks then that is passed to a script that inserts it into a ticketing system. 
 
------------
-The Warning
------------
+##The Warning
 
 As is the case with any automated activity against the ESM, there is a risk of overloading it and impacting operations. As mentioned, this script provides redundant monitoring to what already exists on the ESM and generally isn't needed.
 
@@ -46,9 +36,7 @@ If you have 40 Receivers and running this script at a 10 minute interval this wi
 
 ESM_Healthmon is not supported by McAfee so do be careful. 
 
-------------
-Installation
-------------
+##Installation
 
 Python 3.5+ is required.
 
@@ -74,15 +62,14 @@ python healthmon.py config
 
 This creates the healthmon.ini file in the same directory. The generated config provides a template to customize to your use case. It includes options for the query windows and an entry for each Receiver device ID.
 
-------
-Tuning
-------
+
+##Tuning
 
 There are two config files used. The first is for msiempy and can be found in your home directory (~ or %APPDATA%) in .msiempy/conf.ini. Settings in this file include the ESM ip/hostname and credentials. The password is only obfuscated with base64 encoding so the file must be kept secure. There is a 'quiet' option that can be enabled to disable to loading bars displayed during queries that you may want to enable. See the [msiempy documentation](https://mfesiem.github.io/docs/msiempy/index.html#msiempy.NitroConfig) for more details.
 
 The second config file is the heathmon.ini file in the local directory. For tuning, make sure that the alarm_window is appropriate for your environment. Also remove any non-critical query_<Receiver> lines to reduce the query activity. 
 
-----
-TODO
-----
+
+##TODO
+
  - Detailed Reference
