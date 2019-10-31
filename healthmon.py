@@ -53,14 +53,7 @@ def check_threshold(args):
     args['threshold'] = str(threshold) + ' minutes'
     idle_time = calc_idle_time(threshold)
     td = idle_time - args['last_time']
-    if idle_time < args['last_time']:
- #       print('')
-#        print('idle', idle_time, '<' 'last', args['last_time'], 'idle-last=', idle_time - args['last_time'])
-        print('')
     if idle_time > args['last_time']:
-  #      print('')        
-  #      print('idle', idle_time, '<' 'last', args['last_time'], 'idle-last=', idle_time - args['last_time'])
-        print('')        
         args['delta_minutes'] = str(int(td.total_seconds() / 60)) + ' minutes'
     return args
 
