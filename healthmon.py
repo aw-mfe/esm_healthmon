@@ -1,5 +1,6 @@
 import dateparser
 import json
+import logging
 import os
 import sys
 from configparser import ConfigParser, NoSectionError
@@ -11,7 +12,9 @@ from msiempy.alarm import AlarmManager
 from msiempy.event import EventManager, FieldFilter
 from msiempy.device import DevTree
 
-def monitor_alarms(window='LAST_HOUR', threshold=60):
+
+
+def monitor_esm(args):
     """Query for ESM alarms and check against the given time threshold.
     
     Arguments:
@@ -19,53 +22,60 @@ def monitor_alarms(window='LAST_HOUR', threshold=60):
         threshold (int): Number of minutes not seeing an alarm before action.
 
     """
+    if args.get('correlationID') == 'ALARMS':
+        data = AlarmManager(time_range=args['window'], page_size=1).load_data()
+    elif args.get('correlationID') == 'EVENTS':
+        data = get_events(args['ds_id'], window=args['window'])
+
     try:
-        latest_alarm = AlarmManager(time_range=window, page_size=1).load_data()[0]
-    except IndexError:
-        print('No alarms found for time window: {}'.format(window))
-        return False
+        args['last_time'] = convert_time(data[0]['Alert.LastTime'])
+    except (IndexError, KeyError):
+        print('Exception. Now checking Alarm Last time')
+        try:
+            args['last_time'] = convert_time(data[0]['triggeredDate'])
+        except (IndexError, KeyError):
+            args['delta_minutes'] = args['window']
+            args['last_time'] = 'unknown'
 
-    idle_time = calc_idle_time(threshold)
-    alarm_time = convert_time(latest_alarm['triggeredDate'])
-    td = idle_time - alarm_time 
-    delta_minutes = int(td.total_seconds() / 60)
-    if idle_time < alarm_time:
-        mesg = ('The ESM has not generated an alarm for {} minutes. The threshold is '
-                'set to {} minutes and the last alarm was generated at: {}. Please '
-                'investigate!\n'
-                .format(delta_minutes, threshold, alarm_time))
-        print(mesg)
-        return mesg
-    else:
-        print(' - Alarms are within the threshold of {} minutes. Timestamp for last alarm: {}'
-                .format(threshold, alarm_time))
-
-def monitor_queries(qconf, window='LAST_HOUR'):
-    """Runs a query for each of the datasource IDs
+    if not args.get('delta_minutes'):
+        args = check_threshold(args)
     
-    Arguments:
-        qconf (list of tuples): datasource_id,threshold
-        datasource_id can be retrieved via get_devices()
-    """
-    for q in qconf:
-        ds_id = q[0]
-        ds_name = device_name_from_id(ds_id)
-        print('Checking device: {}...'.format(ds_name))
-        threshold = q[1]
-        idle_time = calc_idle_time(threshold)
-        last_time = convert_time(get_events(ds_id, window=window)['Alert.LastTime'])
-        td = idle_time - last_time 
-        delta_minutes = int(td.total_seconds() / 60)
-        if idle_time < last_time:
-            mesg = ('Device: {} has not received an event for {} minutes. The threshold is '
-                    'set to {} minutes and the last event was generated at: {}. Please '
-                    'investigate!\n'
-                    .format(ds_name, delta_minutes, threshold, last_time))
-            print(mesg)
-            return mesg
-        else:
-            print('Device: - {} is within the event threshold of {} minutes. Timestamp for last event: {}'
-                    .format(ds_name, threshold, last_time))
+    if args.get('delta_minutes'):
+        args['shortDescription'] = 'McAfee ESM {correlationID} latest time outside of Threshold'.format(**args)
+        args['description'] = fail_mesg(args)
+    else:
+        args['shortDescription'] = 'McAfee ESM {correlationID} latest time within Threshold'.format(**args)
+        args['description'] = success_mesg(args)
+    return args
+
+def check_threshold(args):
+    threshold = int(args['threshold'])
+    args['threshold'] = str(threshold) + ' minutes'
+    idle_time = calc_idle_time(threshold)
+    td = idle_time - args['last_time']
+    if idle_time < args['last_time']:
+ #       print('')
+#        print('idle', idle_time, '<' 'last', args['last_time'], 'idle-last=', idle_time - args['last_time'])
+        print('')
+    if idle_time > args['last_time']:
+  #      print('')        
+  #      print('idle', idle_time, '<' 'last', args['last_time'], 'idle-last=', idle_time - args['last_time'])
+        print('')        
+        args['delta_minutes'] = str(int(td.total_seconds() / 60)) + ' minutes'
+    return args
+
+def fail_mesg(args):
+        return ('Device: {deviceName} has not seen {correlationID} for: {delta_minutes}. The threshold is '
+                'set to: {threshold} and the last activity was generated at: {last_time}.'
+                .format(**args))
+
+def get_log(args):
+        return 
+
+def success_mesg(args):
+    return ('--> {correlationID} within the threshold timme of {threshold}. '
+                'Latest timestamp is: {last_time}'.format(**args))
+
 
 def get_events(ds_id, window='LAST_HOUR'):
     """Returns most recent event for the given datasource ID
@@ -77,17 +87,16 @@ def get_events(ds_id, window='LAST_HOUR'):
         window (str) -- time window to query data in minutes
                  (default: {'LAST_HOUR'})
     """
-    # Adding mask to datasource ID. ERCs use /8.
-    ds_id = ds_id + '/8'
     events = EventManager(
             time_range=window,
             fields=['HostID', 'UserIDSrc'],
+            order=('DESCENDING', 'LastTime'),
             filters=[FieldFilter('IPSID', ds_id, operator='EQUALS') ],
-            limit=1,
+            limit=1000,
             max_query_depth=2)
     events.load_data()
 
-    return events[0]
+    return events
 
 def get_rec_ids():
     """Gets names and datasource IDs for all the Receivers.
@@ -167,6 +176,15 @@ python healthmon.py help
             """)
     sys.exit()
 
+def get_logger():
+    logger = logging.getLogger('main')
+    logger.setLevel(logging.ERROR)
+    handler = logging.FileHandler('esm_heath.log')
+    log_format = logging.Formatter('%(message)s')
+    handler.setFormatter(log_format)
+    logger.addHandler(handler)
+    return logger
+
 def main():
     if len(sys.argv) > 1:
         if sys.argv[1] == 'config':
@@ -179,30 +197,53 @@ def main():
         if sys.argv[1] in helpwords:
             usage()
 
+
     filename = 'healthmon.ini'
+    if not Path(filename).is_file():
+        print('Error: {} not found.'.format(filename))
+        sys.exit()
+
     section = 'healthmon'
     c = ConfigParser()
     c.read(filename)
     if not c.has_section(section):
-        print('Error: [{}] section required in ini file.').format(section)
+        print('Error: [{}] section required in ini file.'.format(section))
         sys.exit()
-    print('Starting ESM Health Check. Current time: {}'.format(datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+
+    print('Starting ESM Health Check. Current time: {}'
+            .format(datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+    
 
     if c.get(section, 'monitor_alarms').lower().startswith('t'):
+        args = {}
         print('Checking alarms...')
-        window = c.get(section, 'alarm_window')
-        alarm_threshold = c.get(section, 'alarm_threshold')
-        mesg = monitor_alarms(window=window, threshold=alarm_threshold)
+        args['correlationID'] = 'ALARMS'
+        args['deviceName'] = 'Primary ESM'
+        args['window'] = c.get(section, 'alarm_window')
+        args['threshold'] = c.get(section, 'alarm_threshold')
+        mesg = monitor_esm(args)
+        print('LOG', mesg)
 
     if c.get(section, 'monitor_queries').lower().startswith('t'):
-        print('Checking query times...')
-        window = c.get(section, 'event_window')
-        queries = [(v.split(',')[0], v.split(',')[1])
-                    for k, v in c[section].items() if k.startswith('query')]
-        mesg = monitor_queries(queries, window=window)
+
+        print('Checking devices...')
+
+        for k, v in c[section].items(): 
+            args = {}
+            args['correlationID'] = 'EVENTS'
+            args['window'] = c.get(section, 'event_window')
+            if not k.startswith('query'): continue
+            args['ds_id'], args['threshold'] = v.split(',')
+            args['deviceName'] = device_name_from_id(args['ds_id'])
+            # Adding mask to datasource ID. ERCs use /8.
+            args['ds_id'] = ''.join([args['ds_id'], '/8'])
+            mesg = monitor_esm(args)
+            print('LOG', mesg['deviceName'], mesg['last_time'], datetime.now())
     
+
 if __name__ == "__main__":
     try:
+        logger = get_logger()
         main()
     except KeyboardInterrupt:
         print("Control-C Pressed, stopping...")
