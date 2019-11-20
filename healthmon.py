@@ -204,7 +204,7 @@ def main():
     filename = 'healthmon.ini'
     if not Path(filename).is_file():
         print('Error: {} not found.'.format(filename))
-        pring('Run "python healthmon.py config" to create one.')
+        print('Run "python healthmon.py config" to create one.')
         sys.exit()
 
     section = 'healthmon'
