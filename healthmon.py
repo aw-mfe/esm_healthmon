@@ -105,7 +105,7 @@ class HealthMon(object):
             list of dicts -- name:id format
         """
         dt = self.build_devtree()
-        return [(dev['name'], dev['ds_id']) for dev in dt if dev['desc_id'] == '2']
+        return [(dev['name'], dev['ds_id']) for dev in dt if dev['desc_id'] in ['2','13']]
 
     def device_name_from_id(self, device_id):
         """Returns device name for given device id"""
@@ -150,17 +150,22 @@ class HealthMon(object):
         c.set('healthmon', '# The key needs to start with "query"')
         c.set('healthmon', '# The threshold is the max age of events in minutes before taking action.')
         recs = self.get_rec_ids()
-        for r in recs:
-            key = 'query_' + r[0].lower().replace(' ', '_')
-            val = r[1] + ',20'
-            c.set(filename, key, val)
+        if not recs:
+            print('It appears this ESM does not have any Receivers. Query config will be disabled.')
+            c.set('healthmon', 'monitor_queries', 'false')
+        else:
+            for r in recs:
+                key = 'query_' + r[0].lower().replace(' ', '_')
+                val = r[1] + ',20'
+                c.set('healthmon', key, val)
+
         if Path(filename).is_file():
             prompt = input('The file healthmon.ini already exists. Overwrite? (y/n)')
             if prompt.lower().startswith('y'):
                 self.write_file(filename, c)
         else:
             self.write_file(filename, c)
-            
+
     def write_file(self, filename, data):
         with open(filename, 'w') as f:
             data.write(f)
