@@ -157,10 +157,14 @@ class HealthMon(object):
         if Path(filename).is_file():
             prompt = input('The file healthmon.ini already exists. Overwrite? (y/n)')
             if prompt.lower().startswith('y'):
-                with open(filename, 'w') as f:
-                    c.write(f)
-                print('Config file written to: {}'.format(filename))
-
+                self.write_file(filename, c)
+        else:
+            self.write_file(filename, c)
+            
+    def write_file(self, filename, data):
+        with open(filename, 'w') as f:
+            data.write(f)
+        print('Config file written to: {}'.format(filename))
 
 def usage():
     print("""Usage: python healthmon.py 
@@ -191,6 +195,7 @@ def main():
         if sys.argv[1] == 'config':
             hm = HealthMon()
             hm.build_default_config()
+            sys.exit()
         if sys.argv[1] == 'device_ids':
             hm = HealthMon()
             for device in hm.get_dev_ids():
