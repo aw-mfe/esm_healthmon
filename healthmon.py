@@ -189,7 +189,7 @@ python healthmon.py help
 def get_logger():
     logger = logging.getLogger('main')
     logger.setLevel(logging.ERROR)
-    handler = logging.FileHandler('esm_heath.log')
+    handler = logging.FileHandler('esm_health.log')
     log_format = logging.Formatter('%(message)s')
     handler.setFormatter(log_format)
     logger.addHandler(handler)
