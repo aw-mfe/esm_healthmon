@@ -132,8 +132,7 @@ class HealthMon(object):
         return DevTree()
         
     def build_default_config(self):
-        if not self.filename:
-            self.filename = 'healthmon.ini'
+        filename = 'healthmon.ini'
         c = ConfigParser(allow_no_value=True)
         print('Building default config...')
         c.add_section('healthmon')
@@ -154,13 +153,13 @@ class HealthMon(object):
         for r in recs:
             key = 'query_' + r[0].lower().replace(' ', '_')
             val = r[1] + ',20'
-            c.set('healthmon', key, val)
-        if Path('healthmon.ini').is_file():
+            c.set(filename, key, val)
+        if Path(filename).is_file():
             prompt = input('The file healthmon.ini already exists. Overwrite? (y/n)')
             if prompt.lower().startswith('y'):
-                with open(self.filename, 'w') as f:
+                with open(filename, 'w') as f:
                     c.write(f)
-                print('Config file written to: {}'.format(self.filename))
+                print('Config file written to: {}'.format(filename))
 
 
 def usage():
@@ -205,6 +204,7 @@ def main():
     filename = 'healthmon.ini'
     if not Path(filename).is_file():
         print('Error: {} not found.'.format(filename))
+        pring('Run "python healthmon.py config" to create one.')
         sys.exit()
 
     section = 'healthmon'
