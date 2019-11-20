@@ -149,7 +149,7 @@ class HealthMon(object):
         c.set('healthmon', '# Format: query_<name> = <device_id>,<threshold>')
         c.set('healthmon', '# The key needs to start with "query"')
         c.set('healthmon', '# The threshold is the max age of events in minutes before taking action.')
-        recs = get_rec_ids()
+        recs = self.get_rec_ids()
         for r in recs:
             key = 'query_' + r[0].lower().replace(' ', '_')
             val = r[1] + ',20'
